@@ -1,71 +1,67 @@
+# IPD Case Sheet Generator Web Interface for Dr. Doodley Pet Hospital
+
 import datetime
 import streamlit as st
 from docx import Document
 from io import BytesIO
 
-def generate_ipd_case_sheet(data):
-    lines = []
-    lines.append('Dr. Doodley Pet Hospital, Jayanagar Branch')
-    lines.append('In-Patient Department (IPD) Case Sheet')
-    lines.append(f"Date: {datetime.datetime.now().strftime('%d-%m-%Y')}")
-    lines.append("Doctor-in-Charge: " + ', '.join(data['doctor_in_charge']))
-    lines.append("\n")
+def generate_ipd_case_sheet_docx(data):
+    doc = Document()
+    doc.add_heading('Dr. Doodley Pet Hospital, Jayanagar Branch', 0)
+    doc.add_heading('In-Patient Department (IPD) Case Sheet', level=1)
+    doc.add_paragraph(f"Date: {datetime.datetime.now().strftime('%d-%m-%Y')}")
+    doc.add_paragraph("Doctor-in-Charge: " + ', '.join(data['doctor_in_charge']))
+    doc.add_paragraph("\n")
 
-    lines.append('1. Patient Details')
-    for key, value in data['patient_details'].items():
-        lines.append(f"{key}: {value}")
-    lines.append("\n")
+    def add_section(title, content_dict):
+        doc.add_heading(title, level=2)
+        for key, value in content_dict.items():
+            doc.add_paragraph(f"{key}: {value}")
+        doc.add_paragraph("")
 
-    lines.append('2. Clinical Presentation')
-    for key, value in data['clinical_presentation'].items():
-        lines.append(f"{key}: {value}")
-    lines.append("\n")
+    add_section("1. Patient Details", data['patient_details'])
+    add_section("2. Clinical Presentation", data['clinical_presentation'])
+    add_section("3. Vitals", data['vitals'])
+    add_section("4. Diagnostic Tests Done", data['diagnostic_tests'])
 
-    lines.append('3. Vitals')
-    for key, value in data['vitals'].items():
-        lines.append(f"{key}: {value}")
-    lines.append("\n")
+    doc.add_heading("5. Provisional Diagnosis", level=2)
+    doc.add_paragraph(data['provisional_diagnosis'])
+    doc.add_heading("6. Differential Diagnosis", level=2)
+    doc.add_paragraph(data['differential_diagnosis'])
+    doc.add_heading("7. Final Diagnosis", level=2)
+    doc.add_paragraph(data['final_diagnosis'])
 
-    lines.append('4. Diagnostic Tests Done')
-    for key, value in data['diagnostic_tests'].items():
-        lines.append(f"{key}: {value}")
-    lines.append("\n")
-
-    lines.append('5. Provisional Diagnosis')
-    lines.append(data['provisional_diagnosis'])
-    lines.append('6. Differential Diagnosis')
-    lines.append(data['differential_diagnosis'])
-    lines.append('7. Final Diagnosis')
-    lines.append(data['final_diagnosis'])
-    lines.append("\n")
-
-    lines.append('8. Treatment Plan')
-    headers = ['Drug/Fluid Name', 'Dosage (mg/ml)', 'Route', 'Frequency', 'Duration']
-    lines.append(" | ".join(headers))
-    lines.append(" | ".join(['-' * len(h) for h in headers]))
+    doc.add_heading("8. Treatment Plan", level=2)
+    table = doc.add_table(rows=1, cols=5)
+    hdr_cells = table.rows[0].cells
+    hdr_cells[0].text = 'Drug/Fluid Name'
+    hdr_cells[1].text = 'Dosage (mg/ml)'
+    hdr_cells[2].text = 'Route'
+    hdr_cells[3].text = 'Frequency'
+    hdr_cells[4].text = 'Duration'
     for item in data['treatment_plan']:
-        row = [item['name'], item['dosage'], item['route'], item['frequency'], item['duration']]
-        lines.append(" | ".join(row))
-    lines.append("\n")
+        row_cells = table.add_row().cells
+        row_cells[0].text = item['name']
+        row_cells[1].text = item['dosage']
+        row_cells[2].text = item['route']
+        row_cells[3].text = item['frequency']
+        row_cells[4].text = item['duration']
 
-    lines.append('9. Special Procedures / Surgery Done')
-    lines.append(data['special_procedures'])
-    lines.append("\n")
+    doc.add_heading("9. Special Procedures / Surgery Done", level=2)
+    doc.add_paragraph(data['special_procedures'])
 
-    lines.append('10. Follow-up Instructions')
-    lines.append(data['follow_up'])
-    lines.append("\n")
+    doc.add_heading("10. Follow-up Instructions", level=2)
+    doc.add_paragraph(data['follow_up'])
 
-    lines.append('11. Discharge Summary')
-    lines.append(data['discharge_summary'])
+    doc.add_heading("11. Discharge Summary", level=2)
+    doc.add_paragraph(data['discharge_summary'])
 
-    return "\n".join(lines)
+    buffer = BytesIO()
+    doc.save(buffer)
+    buffer.seek(0)
+    return buffer
 
-# Streamlit UI
 st.title("Dr. Doodley Pet Hospital - IPD Case Sheet Generator")
-
-if 'case_sheet' not in st.session_state:
-    st.session_state.case_sheet = None
 
 with st.form("ipd_form"):
     st.header("1. Patient Details")
@@ -121,13 +117,7 @@ with st.form("ipd_form"):
             frequency = st.text_input(f"Frequency {i}", key=f"frequency_{i}")
             duration = st.text_input(f"Duration {i}", key=f"duration_{i}")
             if name:
-                treatment_plan.append({
-                    "name": name,
-                    "dosage": dosage,
-                    "route": route,
-                    "frequency": frequency,
-                    "duration": duration
-                })
+                treatment_plan.append({"name": name, "dosage": dosage, "route": route, "frequency": frequency, "duration": duration})
 
     st.header("9. Special Procedures / Surgery Done")
     special_procedures = st.text_area("Special Procedures")
@@ -143,7 +133,7 @@ with st.form("ipd_form"):
     submitted = st.form_submit_button("Generate Case Sheet")
 
 if submitted:
-    case_text = generate_ipd_case_sheet({
+    docx_file = generate_ipd_case_sheet_docx({
         "patient_details": patient_details,
         "clinical_presentation": clinical_presentation,
         "vitals": vitals,
@@ -157,18 +147,12 @@ if submitted:
         "discharge_summary": discharge_summary,
         "doctor_in_charge": doctor_in_charge
     })
-    st.session_state.case_sheet = case_text
-    st.success("✅ Case sheet generated successfully!")
 
-# Show download option after generation
-if st.session_state.case_sheet:
-    st.markdown("---")
-    st.subheader("📄 Generated Case Sheet Preview")
-    st.text(st.session_state.case_sheet)
+    st.success("Case sheet generated successfully!")
 
     st.download_button(
-        label="📥 Download Case Sheet",
-        data=st.session_state.case_sheet,
-        file_name="IPD_Case_Sheet.txt",
-        mime="text/plain"
+        label="Download Case Sheet (Word)",
+        data=docx_file,
+        file_name="IPD_Case_Sheet.docx",
+        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     )
