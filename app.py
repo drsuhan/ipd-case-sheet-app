@@ -1,5 +1,7 @@
 import datetime
 import streamlit as st
+from docx import Document
+from io import BytesIO
 
 def generate_ipd_case_sheet(data):
     lines = []
