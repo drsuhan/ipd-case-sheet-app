@@ -1,5 +1,3 @@
-# IPD Case Sheet Generator Web Interface for Dr. Doodley Pet Hospital
-
 import datetime
 import streamlit as st
 
@@ -61,8 +59,11 @@ def generate_ipd_case_sheet(data):
 
     return "\n".join(lines)
 
-# Streamlit Web UI
+# Streamlit UI
 st.title("Dr. Doodley Pet Hospital - IPD Case Sheet Generator")
+
+if 'case_sheet' not in st.session_state:
+    st.session_state.case_sheet = None
 
 with st.form("ipd_form"):
     st.header("1. Patient Details")
@@ -118,7 +119,13 @@ with st.form("ipd_form"):
             frequency = st.text_input(f"Frequency {i}", key=f"frequency_{i}")
             duration = st.text_input(f"Duration {i}", key=f"duration_{i}")
             if name:
-                treatment_plan.append({"name": name, "dosage": dosage, "route": route, "frequency": frequency, "duration": duration})
+                treatment_plan.append({
+                    "name": name,
+                    "dosage": dosage,
+                    "route": route,
+                    "frequency": frequency,
+                    "duration": duration
+                })
 
     st.header("9. Special Procedures / Surgery Done")
     special_procedures = st.text_area("Special Procedures")
@@ -131,10 +138,10 @@ with st.form("ipd_form"):
 
     doctor_in_charge = st.multiselect("Doctor-in-Charge", ["Dr. Revathi", "Dr. Suhan H M, MVSc (Surgery & Radiology), F.VMAS, PGDAW"])
 
-       submitted = st.form_submit_button("Generate Case Sheet")
+    submitted = st.form_submit_button("Generate Case Sheet")
 
 if submitted:
-    result = generate_ipd_case_sheet({
+    case_text = generate_ipd_case_sheet({
         "patient_details": patient_details,
         "clinical_presentation": clinical_presentation,
         "vitals": vitals,
@@ -148,16 +155,17 @@ if submitted:
         "discharge_summary": discharge_summary,
         "doctor_in_charge": doctor_in_charge
     })
-    st.session_state.case_sheet = result
-    st.success("Case sheet generated successfully!")
+    st.session_state.case_sheet = case_text
+    st.success("✅ Case sheet generated successfully!")
 
-if 'case_sheet' in st.session_state:
+# Show download option after generation
+if st.session_state.case_sheet:
     st.markdown("---")
-    st.subheader("Generated Case Sheet Preview")
+    st.subheader("📄 Generated Case Sheet Preview")
     st.text(st.session_state.case_sheet)
 
     st.download_button(
-        label="Download Case Sheet",
+        label="📥 Download Case Sheet",
         data=st.session_state.case_sheet,
         file_name="IPD_Case_Sheet.txt",
         mime="text/plain"
