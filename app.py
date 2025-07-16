@@ -131,21 +131,34 @@ with st.form("ipd_form"):
 
     doctor_in_charge = st.multiselect("Doctor-in-Charge", ["Dr. Revathi", "Dr. Suhan H M, MVSc (Surgery & Radiology), F.VMAS, PGDAW"])
 
-    submitted = st.form_submit_button("Generate Case Sheet")
+       submitted = st.form_submit_button("Generate Case Sheet")
 
-    if submitted:
-        result = generate_ipd_case_sheet({
-            "patient_details": patient_details,
-            "clinical_presentation": clinical_presentation,
-            "vitals": vitals,
-            "diagnostic_tests": diagnostic_tests,
-            "provisional_diagnosis": provisional_diagnosis,
-            "differential_diagnosis": differential_diagnosis,
-            "final_diagnosis": final_diagnosis,
-            "treatment_plan": treatment_plan,
-            "special_procedures": special_procedures,
-            "follow_up": follow_up,
-            "discharge_summary": discharge_summary,
-            "doctor_in_charge": doctor_in_charge
-        })
-        st.download_button("Download Case Sheet", result.encode('utf-8'), file_name="IPD_Case_Sheet.txt")
+if submitted:
+    result = generate_ipd_case_sheet({
+        "patient_details": patient_details,
+        "clinical_presentation": clinical_presentation,
+        "vitals": vitals,
+        "diagnostic_tests": diagnostic_tests,
+        "provisional_diagnosis": provisional_diagnosis,
+        "differential_diagnosis": differential_diagnosis,
+        "final_diagnosis": final_diagnosis,
+        "treatment_plan": treatment_plan,
+        "special_procedures": special_procedures,
+        "follow_up": follow_up,
+        "discharge_summary": discharge_summary,
+        "doctor_in_charge": doctor_in_charge
+    })
+    st.session_state.case_sheet = result
+    st.success("Case sheet generated successfully!")
+
+if 'case_sheet' in st.session_state:
+    st.markdown("---")
+    st.subheader("Generated Case Sheet Preview")
+    st.text(st.session_state.case_sheet)
+
+    st.download_button(
+        label="Download Case Sheet",
+        data=st.session_state.case_sheet,
+        file_name="IPD_Case_Sheet.txt",
+        mime="text/plain"
+    )
